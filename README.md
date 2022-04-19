@@ -12,17 +12,27 @@ import (
 )
 
 var items = []interface{}{
-	"1", "2", "3",
+	1, 2, 3,
 }
 
 func pagFunc() pagination.PaginateFunc {
-	lastItemIndex := 0
+	lastItem := 0
 	return pagination.FetchHelper(
 		func(ctx context.Context, fetchLimit int) ([]interface{}, error) {
-			return items[lastItemIndex:], nil
+			for in, item := range items {
+				i, _ := item.(int)
+				if i > lastItem {
+					return items[in:], nil
+				}
+			}
+			return nil, nil
 		},
 		func(ctx context.Context, allData []interface{}, needed int) ([]interface{}, error) {
-			lastItemIndex += needed - 1
+			lastItemIndex := len(allData)
+			if needed == lastItemIndex {
+				lastItemIndex -= 1
+			}
+			lastItem = allData[lastItemIndex-1].(int)
 			return allData, nil
 		},
 		0,
