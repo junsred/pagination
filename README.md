@@ -1,19 +1,40 @@
-Example usage
+#Example usage
 
 
 ```go
-func pagFunc() PaginateFunc {
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/junsred/pagination"
+)
+
+var items = []interface{}{
+	"1", "2", "3",
+}
+
+func pagFunc() pagination.PaginateFunc {
+	lastItemIndex := 0
 	return pagination.FetchHelper(
 		func(ctx context.Context, fetchLimit int) ([]interface{}, error) {
-			//fetch from db
+			return items[lastItemIndex:], nil
 		},
 		func(ctx context.Context, allData []interface{}, needed int) ([]interface{}, error) {
-			//filter fetched data
+			lastItemIndex += needed - 1
+			return allData, nil
 		},
 		0,
 	)
 }
 
-p := pag.New(pagFunc, 20)
-pagResult, err := p.Paginate(ctx)
+func main() {
+	ctx := context.TODO()
+	p := pagination.New(pagFunc(), 2)
+	pagResult, err := p.Paginate(ctx)
+	log.Println(pagResult, err)
+	pagResult, err = p.Paginate(ctx)
+	log.Println(pagResult, err)
+}
 ```
