@@ -7,7 +7,7 @@ func pagFunc() PaginateFunc {
 		func(ctx context.Context, fetchLimit int) ([]interface{}, error) {
 			//fetch from db
 		},
-		func(ctx context.Context, allData []interface{}, needed int) []interface{} {
+		func(ctx context.Context, allData []interface{}, needed int) ([]interface{}, error) {
 			//filter fetched data
 		},
 		0,
