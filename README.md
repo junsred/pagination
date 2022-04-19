@@ -1,5 +1,16 @@
-## Example usage
+# Pagination
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/junsred/pagination)](https://goreportcard.com/report/github.com/junsred/pagination)
+
+Simple, fast and safe pagination tool for go.
+
+### Documentation
+
+- [Concurrent example](https://github.com/junsred/pagination/tree/main/_examples/concurrent)
+- [Fetch example](https://github.com/junsred/pagination/tree/main/_examples/fetch)
+- [Simple example](https://github.com/junsred/pagination/tree/main/_examples/simple)
+
+### Example usage
 
 ```go
 package main
