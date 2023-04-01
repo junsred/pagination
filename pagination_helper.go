@@ -52,7 +52,8 @@ func ProcessConcurrently(fetchedData []interface{},
 func FetchHelper(
 	fetchFunc func(context.Context, int) ([]interface{}, error),
 	process func(context.Context, []interface{}, int) ([]interface{}, error),
-	fetchMore int) PaginateFunc {
+	fetchMore int,
+	processMore int) PaginateFunc {
 	outOfData := false
 	return func(ctx context.Context, needed int) ([]interface{}, error) {
 		if outOfData {
@@ -69,6 +70,6 @@ func FetchHelper(
 		if len(fetchedData) < fetchLimit {
 			outOfData = true
 		}
-		return process(ctx, fetchedData, needed)
+		return process(ctx, fetchedData, needed+processMore)
 	}
 }
