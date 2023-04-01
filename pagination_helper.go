@@ -26,7 +26,6 @@ func ProcessConcurrently(fetchedData []interface{},
 	}
 	dataLen := len(fetchedData)
 	allData := make([]interface{}, dataLen, dataLen)
-	var mutex sync.RWMutex
 	var wg sync.WaitGroup
 	for i, invite := range fetchedData {
 		wg.Add(1)
@@ -36,9 +35,7 @@ func ProcessConcurrently(fetchedData []interface{},
 			if pData == nil {
 				return
 			}
-			mutex.Lock()
 			allData[i] = pData
-			mutex.Unlock()
 		}(i, invite)
 		if (i+1)%(needed) == 0 {
 			wg.Wait()
