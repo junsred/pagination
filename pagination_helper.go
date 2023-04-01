@@ -25,7 +25,7 @@ func ProcessConcurrently(fetchedData []interface{},
 		return cItems, false
 	}
 	dataLen := len(fetchedData)
-	allData := make([]interface{}, dataLen, dataLen)
+	allData := make([]interface{}, dataLen)
 	var wg sync.WaitGroup
 	for i, invite := range fetchedData {
 		wg.Add(1)
