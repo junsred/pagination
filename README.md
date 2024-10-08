@@ -8,7 +8,6 @@ Simple, fast and safe pagination tool for go. Now with generics!
 
 - [Concurrent example](https://github.com/junsred/pagination/tree/main/_examples/concurrent)
 - [Fetch example](https://github.com/junsred/pagination/tree/main/_examples/fetch)
-- [Simple example](https://github.com/junsred/pagination/tree/main/_examples/simple)
 
 ### Example usage
 
