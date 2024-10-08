@@ -30,9 +30,9 @@ var items = []*Item{
 	{Key: 3, Value: "Item 3"},
 }
 
-func fetch(ctx context.Context, limit int, lastItem *int) ([]*Item, bool, error) {
+func fetch(ctx context.Context, limit int, lastItemKey *int) ([]*Item, bool, error) {
 	for i, item := range items {
-		if item.Key > *lastItem {
+		if item.Key > *lastItemKey {
 			if limit > len(items)-i {
 				limit = len(items) - i
 			}
@@ -45,8 +45,8 @@ func fetch(ctx context.Context, limit int, lastItem *int) ([]*Item, bool, error)
 
 func main() {
 	ctx := context.TODO()
-	var lastItem int
-	p := pagination.New(fetch, lastItem)
+	var lastItemKey int
+	p := pagination.New(fetch, lastItemKey)
 	pagResult, _ := p.Paginate(ctx, 2)
 	for _, item := range pagResult.Items {
 		log.Println("first page item", item)
