@@ -6,26 +6,29 @@ import (
 	"time"
 )
 
-type PaginateFunc func(context.Context, int) ([]interface{}, error)
+type PaginateFunc[K comparable, V any] func(context.Context, int, *K) ([]*Item[K, V], bool, error)
+type NextFunc[K comparable, V any] func(context.Context, *PaginationResult[K, V]) string
 
 type pagOptions struct {
-	perPage        int
-	paginateFunc   PaginateFunc
 	maxProcessTime time.Duration
+	nextFunc       any
 }
 
-type PaginationResult struct {
-	Data    []interface{}
+type PaginationResult[K comparable, V any] struct {
+	Items   []*Item[K, V]
 	HasNext bool
+	Next    *string
 }
 
-type Pagination struct {
-	options pagOptions
+type Pagination[K comparable, V any] struct {
+	options      pagOptions
+	paginateFunc PaginateFunc[K, V]
+	lastKey      K
 }
 
-type TimeItem struct {
-	Data interface{}
-	Time time.Time
+type Item[K comparable, V any] struct {
+	Key   K
+	Value V
 }
 
 const (
@@ -61,13 +64,19 @@ func WithTimeout(s time.Duration) PagOption {
 	})
 }
 
-func New(pagFunc PaginateFunc, perPage int, opts ...PagOption) *Pagination {
-	p := &Pagination{
+func WithNextFunc[K comparable, V any](f NextFunc[K, V]) PagOption {
+	return newFuncPagOption(func(o *pagOptions) {
+		o.nextFunc = f
+	})
+}
+
+func New[K comparable, V any](pagFunc PaginateFunc[K, V], lastKey K, opts ...PagOption) *Pagination[K, V] {
+	p := &Pagination[K, V]{
 		options: pagOptions{
-			paginateFunc:   pagFunc,
-			perPage:        perPage,
 			maxProcessTime: maxProcessTime,
 		},
+		paginateFunc: pagFunc,
+		lastKey:      lastKey,
 	}
 	for _, opt := range opts {
 		opt.apply(&p.options)
@@ -76,42 +85,48 @@ func New(pagFunc PaginateFunc, perPage int, opts ...PagOption) *Pagination {
 }
 
 // Paginate returns a pagination result data list and a boolean indicating if there is a next page
-//  func pagFunc() PaginateFunc {
-//	 return pagination.FetchHelper(
-//		 func(ctx context.Context, fetchLimit int) ([]interface{}, error) {
-//			 //fetch from db
-//		 },
-//		 func(ctx context.Context, allData []interface{}, needed int) ([]interface{}, error) {
-//			 //filter fetched data
-//		 },
-//		 0,
-//	 )
-//  }
-//  p := pag.New(pagFunc, 20)
-//  pagResult, err := p.Paginate(ctx)
-func (p *Pagination) Paginate(ctx context.Context) (*PaginationResult, error) {
+//
+//	type Item = pagination.Item[int, string]
+//	var items = []*Item{{Key: 1, Value: "Item 1"}, {Key: 2, Value: "Item 2"}}
+//	func pagFunc(ctx context.Context, needed int, _ *int) ([]*Item, bool, error) {
+//		if needed > len(items) {
+//			needed = len(items)
+//		}
+//		returnItems := items[:needed]
+//		items = items[needed:]
+//		return returnItems, len(items) > 0, nil
+//	}
+//	p := pagination.New(pagFunc, 0)
+//	pagResult, err := p.Paginate(context.TODO(), 2)
+func (p *Pagination[K, V]) Paginate(ctx context.Context, length int) (*PaginationResult[K, V], error) {
 	ctx, cancel := context.WithTimeout(ctx, p.options.maxProcessTime)
 	defer cancel()
-	pagResult := &PaginationResult{
-		Data: make([]interface{}, 0, p.options.perPage),
+	pagResult := &PaginationResult[K, V]{
+		Items:   make([]*Item[K, V], 0, length),
+		HasNext: true,
 	}
-	for { // fetch until last item is reached
+	for pagResult.HasNext && len(pagResult.Items) < length {
 		if ctx.Err() != nil {
 			return pagResult, ErrResourceExhausted
 		}
-		processedData, err := p.options.paginateFunc(ctx, p.options.perPage-len(pagResult.Data)+1)
+		var processedItems []*Item[K, V]
+		var err error
+		processedItems, pagResult.HasNext, err = p.paginateFunc(ctx, length-len(pagResult.Items), &p.lastKey)
 		if err != nil {
 			return pagResult, err
 		}
-		if processedData == nil { // finish if no data is received
-			break
-		}
-		if len(processedData)+len(pagResult.Data) > p.options.perPage {
-			pagResult.Data = append(pagResult.Data, processedData[:p.options.perPage-len(pagResult.Data)]...)
-			pagResult.HasNext = true
-			break
-		}
-		pagResult.Data = append(pagResult.Data, processedData...)
+		pagResult.Items = append(pagResult.Items, processedItems...)
+	}
+	if len(pagResult.Items) > length {
+		pagResult.HasNext = true
+		pagResult.Items = pagResult.Items[:length]
+	}
+	if len(pagResult.Items) > 0 {
+		p.lastKey = pagResult.Items[len(pagResult.Items)-1].Key
+	}
+	if pagResult.HasNext && p.options.nextFunc != nil {
+		next := p.options.nextFunc.(NextFunc[K, V])(ctx, pagResult)
+		pagResult.Next = &next
 	}
 	return pagResult, nil
 }
