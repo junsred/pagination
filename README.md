@@ -30,21 +30,31 @@ var items = []*Item{
 	{Key: 3, Value: "Item 3"},
 }
 
-func pagFunc(ctx context.Context, needed int, _ *int) ([]*Item, bool, error) {
-	if needed > len(items) {
-		needed = len(items)
+func fetch(ctx context.Context, limit int, lastItem *int) ([]*Item, bool, error) {
+	for i, item := range items {
+		if item.Key > *lastItem {
+			if limit > len(items)-i {
+				limit = len(items) - i
+			}
+			returnItems := items[i : i+limit]
+			return returnItems, len(items[i+limit:]) > 0, nil
+		}
 	}
-	returnItems := items[:needed]
-	items = items[needed:]
-	return returnItems, len(items) > 0, nil
+	return nil, false, nil
 }
 
 func main() {
-	p := pagination.New(pagFunc, 0)
-	pagResult, err := p.Paginate(context.TODO(), 2)
-	log.Println(pagResult.Items, err)
-	pagResult, err = p.Paginate(context.TODO(), 2)
-	log.Println(pagResult.Items, err)
+	ctx := context.TODO()
+	var lastItem int
+	p := pagination.New(fetch, lastItem)
+	pagResult, _ := p.Paginate(ctx, 2)
+	for _, item := range pagResult.Items {
+		log.Println("first page item", item)
+	}
+	pagResult, _ = p.Paginate(ctx, 2)
+	for _, item := range pagResult.Items {
+		log.Println("second page item", item)
+	}
 }
 
 ```
