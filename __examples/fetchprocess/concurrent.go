@@ -47,7 +47,7 @@ func main() {
 	var lastItem int
 	p := pagination.New(pagination.FetchAndProcess(
 		fetch,
-		pagination.ProcessConcurrently[int, string](process),
+		pagination.ProcessConcurrently(process),
 	), lastItem)
 	pagResult, err := p.Paginate(ctx, 2)
 	log.Println(pagResult, err)
